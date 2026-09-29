@@ -374,8 +374,8 @@ async def test_long_breath_dehydrates_once_then_uses_model_scoped_cache(
 def test_write_tool_descriptions_require_explicit_memory_intent():
     source = (ROOT / "src" / "server.py").read_text(encoding="utf-8")
 
-    assert "不要因普通聊天、猜测或工具名称联想而自行调用" in source
-    assert "不要根据普通聊天自行推断写入意图" in source
+    assert "可以主动调用，不必等用户要求；普通寒暄和猜测不必存" in source
+    assert "可以主动调用，不必等用户要求。整理一段长文本" in source
     assert "不要猜测 bucket_id 或自行改写记忆" in source
     assert "hard_delete=True 仅用于清理创建时明确标记 test_data=True 的测试桶" in source
     assert "普通记忆和 plan 一律拒绝且不会顺带归档" in source
