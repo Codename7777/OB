@@ -44,6 +44,7 @@ from ..you.models import (
     EvidenceEdge,
     ModuleState,
     Scope,
+    carry_receipts_forward,
     evidence_digest,
     utc_now,
 )
@@ -823,13 +824,19 @@ class ThemService:
             # 证据集合，管不到正文——但「修改也要三次确认」不能因为只改了一句话
             # 就绕过去。
             content_changed = observation["content"] != same.content
+            new_revision = evidence_digest(evidence)
             claim = replace(
                 same,
                 content=observation["content"],
                 aspect=observation["aspect"],
                 evidence=evidence,
-                evidence_revision=evidence_digest(evidence),
-                review_receipts=() if content_changed else same.review_receipts,
+                evidence_revision=new_revision,
+                # 证据只增不减时，先前的重申照样算（见 carry_receipts_forward）。
+                review_receipts=()
+                if content_changed
+                else carry_receipts_forward(
+                    same.review_receipts, same.evidence_revision, new_revision
+                ),
                 lifecycle="candidate"
                 if (same.lifecycle == "expired" or content_changed)
                 else same.lifecycle,

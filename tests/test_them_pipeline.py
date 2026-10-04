@@ -863,3 +863,12 @@ class TestDisabled:
         service, _ = _service(tmp_path)
         assert service.status().enabled is False
         assert not service.store.exists
+
+
+@pytest.mark.asyncio
+async def test_them_证据只增不减时先前的重申照样算(tmp_path):
+    service, _ = _enabled(tmp_path, buckets=3)
+    claim, _ = await _write(service)
+    claim = _age_receipts(service, claim)
+    claim, _ = await _write(service, bucket_ids=["memory-1", "memory-2", "memory-3"])
+    assert claim.review_date_count == 2

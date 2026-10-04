@@ -319,3 +319,32 @@ async def test_归档的依据仍然撑得住(tmp_path, monkeypatch):
     manager.buckets["memory-1"] = 归档了
 
     assert "Lin" in await service.recall(query="称呼")
+
+
+@pytest.mark.asyncio
+async def test_证据只增不减时先前的重申照样算(tmp_path, monkeypatch):
+    """过了几天又看到一件印证同一判断的事，补进依据不该把前几天的重申作废。"""
+    service, _ = _enabled(tmp_path, buckets=3)
+    _stamp(monkeypatch, 16)
+    await _write(service, buckets=("memory-1", "memory-2"))
+    _stamp(monkeypatch, 17)
+    claim, _ = await _write(service, buckets=("memory-1", "memory-2", "memory-3"))
+    assert claim.review_date_count == 2
+    assert claim.lifecycle == "candidate"
+    _stamp(monkeypatch, 18)
+    claim, _ = await _write(service, buckets=("memory-1", "memory-3"))
+    assert claim.lifecycle == "formal"
+
+
+@pytest.mark.asyncio
+async def test_正文改了还是从头攒(tmp_path, monkeypatch):
+    service, _ = _enabled(tmp_path, buckets=3)
+    _stamp(monkeypatch, 16)
+    await _write(service)
+    _stamp(monkeypatch, 17)
+    claim, _ = await _write(
+        service,
+        content="她希望大家日常叫她 Lin",
+        buckets=("memory-1", "memory-2", "memory-3"),
+    )
+    assert claim.review_date_count == 1

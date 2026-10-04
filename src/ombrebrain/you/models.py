@@ -520,3 +520,26 @@ def evidence_digest(evidence: tuple[EvidenceEdge, ...] | list[EvidenceEdge]) -> 
     payload = [edge.to_dict() for edge in evidence]
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return "evr_" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def carry_receipts_forward(
+    receipts: tuple["ReviewReceipt", ...], old_revision: str, new_revision: str
+) -> tuple["ReviewReceipt", ...]:
+    """重申时证据只增不减：先前在旧证据上记的收据，挪到新的证据版本上照样算。
+
+    认识一个人本来就是一件一件攒起来的——过了几天又看到一件印证同一个判断
+    的事，把它补进依据，是对这条认识更确信，不该让前几天的重申全部作废。
+    upsert 只会把新给的桶并进去，不会删桶，所以走到这里的证据变化只有"变多"
+    （或者某个已有桶的正文被改过，桶号没变）。证据真的少了——依据桶被删——
+    走的是召回时按活着的桶重新数支撑的那条路，不经过这里。
+
+    正文变了不在这里管：service 里正文一改就直接清空收据，重新攒三天。
+    """
+    if old_revision == new_revision:
+        return receipts
+    return tuple(
+        replace(receipt, evidence_revision=new_revision)
+        if receipt.evidence_revision == old_revision
+        else receipt
+        for receipt in receipts
+    )

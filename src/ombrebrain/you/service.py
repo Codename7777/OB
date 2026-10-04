@@ -19,6 +19,7 @@ from .models import (
     ModuleState,
     Scope,
     YouClaim,
+    carry_receipts_forward,
     evidence_digest,
     utc_now,
 )
@@ -478,14 +479,22 @@ class YouService:
             # 证据集合，管不到正文——但「修改也要三次确认」是 poluz 定死的，
             # 改一句话就悄悄沿用旧收据等于绕开闸一。
             content_changed = str(observation["content"]) != same.content
-            receipts = () if content_changed else same.review_receipts
+            new_revision = evidence_digest(evidence)
+            # 证据只增不减时，先前的重申照样算（见 carry_receipts_forward）。
+            receipts = (
+                ()
+                if content_changed
+                else carry_receipts_forward(
+                    same.review_receipts, same.evidence_revision, new_revision
+                )
+            )
             claim = replace(
                 same,
                 content=str(observation["content"]),
                 aspect=str(observation["aspect"]),
                 recall_policy=recall_policy,
                 evidence=evidence,
-                evidence_revision=evidence_digest(evidence),
+                evidence_revision=new_revision,
                 review_receipts=receipts,
                 # 正文一改就退回候选：已生效的那句话不能在没重新攒够三天的
                 # 情况下被换掉。
